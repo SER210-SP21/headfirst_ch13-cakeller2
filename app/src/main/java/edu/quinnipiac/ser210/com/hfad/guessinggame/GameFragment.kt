@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.navigation.findNavController
 import edu.quinnipiac.ser210.com.hfad.guessinggame.databinding.FragmentGameBinding
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.Observer
 
 class GameFragment : Fragment() {
     private var _binding: FragmentGameBinding? = null
@@ -22,30 +23,36 @@ class GameFragment : Fragment() {
         val view = binding.root
         viewModel = ViewModelProvider(this).get(GameViewModel::class.java)
 
-        updateScreen()
+        viewModel.incorrectGuesses.observe(viewLifecycleOwner, Observer { newValue ->
+            binding.incorrectGuesses.text = "Incorrect guesses: $newValue"
+        })
+
+        viewModel.livesLeft.observe(viewLifecycleOwner, Observer { newValue ->
+            binding.lives.text = "You have $newValue lives left"
+        })
+
+        viewModel.secretWordDisplay.observe(viewLifecycleOwner, Observer { newValue ->
+            binding.word.text = newValue
+        })
+
+        viewModel.gameOver.observe(viewLifecycleOwner, Observer { newValue ->
+            if (newValue) {
+                val action = GameFragmentDirections
+                    .actionGameFragmentToResultFragment(viewModel.wonLostMessage())
+                view.findNavController().navigate(action)
+            }
+        })
 
         binding.guessButton.setOnClickListener() {
             viewModel.makeGuess(binding.guess.text.toString().uppercase())
             binding.guess.text = null
-            updateScreen()
-            if (viewModel.isWon() || viewModel.isLost()) {
-                val action = GameFragmentDirections.actionGameFragmentToResultFragment(viewModel.wonLostMessage())
-                view.findNavController().navigate(action)
-            }
         }
-
         return view
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-    }
-
-    fun updateScreen() {
-        binding.word.text = viewModel.secretWordDisplay
-        binding.lives.text = "You have ${viewModel.livesLeft} lives left"
-        binding.incorrectGuesses.text = "Incorrext guesses: ${viewModel.incorrectGuesses}"
     }
 
 }
